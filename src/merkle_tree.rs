@@ -108,6 +108,7 @@ impl PartialEq for MerkleTree {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
