@@ -1,3 +1,6 @@
+use crate::merkle_errors::MerkleError;
+use std::error::Error;
+
 use sha2::{Digest, Sha256};
 use crate::merkle_proof::MerkleProof;
 
@@ -41,11 +44,15 @@ impl MerkleTree {
         self.layers.last().and_then(|layer| layer.first().cloned())
     }
 
-    pub fn generate_merkle_proof(&self, index: usize) -> Vec<MerkleProof> {
+    pub fn generate_merkle_proof(&self, index: usize) -> Result<Vec<MerkleProof>, Box<dyn Error>> {
         let depth = self.layers.len();
 
+        if index >= self.layers[0].len() {
+            return Err(Box::new(MerkleError::IndexOutOfBounds));
+        }
+
         if depth == 0 {
-            return vec![];
+            return Ok(vec![]);
         }
         
         let mut proof = Vec::new();
@@ -68,7 +75,7 @@ impl MerkleTree {
         }
         
         proof.push(MerkleProof::new(self.get_root().unwrap(), false));
-        proof
+        Ok(proof)
     }
 
     fn build_layer(previous_layer: &[Hash]) -> Vec<Hash> {
@@ -216,7 +223,7 @@ mod tests {
     #[test]
     fn test_generate_merkle_proof_for_2_leaves_tree() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -249,7 +256,7 @@ mod tests {
     #[test]
     fn test_proof_for_single_leaf() {
         let tree = MerkleTree::new(vec!["A"]);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let expected_root = Sha256::digest(b"A");
 
@@ -263,7 +270,7 @@ mod tests {
     #[test]
     fn test_proof_for_two_leaves_left_node() {
         let tree = MerkleTree::new(vec!["A", "B"]);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -284,7 +291,7 @@ mod tests {
     #[test]
     fn test_proof_for_two_leaves_right_node() {
         let tree = MerkleTree::new(vec!["A", "B"]);
-        let proof = tree.generate_merkle_proof(1);
+        let proof = tree.generate_merkle_proof(1).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -305,7 +312,7 @@ mod tests {
     #[test]
     fn test_proof_for_odd_leaves_last_node() {
         let tree = MerkleTree::new(vec!["A", "B", "C"]);
-        let proof = tree.generate_merkle_proof(2);
+        let proof = tree.generate_merkle_proof(2).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -337,7 +344,7 @@ mod tests {
     #[test]
     fn test_proof_for_odd_leaves_first_node() {
         let tree = MerkleTree::new(vec!["A", "B", "C"]);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -368,7 +375,7 @@ mod tests {
     #[test]
     fn test_proof_length_matches_tree_depth() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H"]);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -421,8 +428,8 @@ mod tests {
     #[test]
     fn test_proof_consistency_same_index() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E"]);
-        let proof1 = tree.generate_merkle_proof(2);
-        let proof2 = tree.generate_merkle_proof(2);
+        let proof1 = tree.generate_merkle_proof(2).unwrap();
+        let proof2 = tree.generate_merkle_proof(2).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -469,8 +476,8 @@ mod tests {
     #[test]
     fn test_proof_different_for_different_indices() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
-        let proof0 = tree.generate_merkle_proof(0);
-        let proof1 = tree.generate_merkle_proof(1);
+        let proof0 = tree.generate_merkle_proof(0).unwrap();
+        let proof1 = tree.generate_merkle_proof(1).unwrap();
 
         let hash_a = Sha256::digest(b"A");
         let hash_b = Sha256::digest(b"B");
@@ -511,7 +518,7 @@ mod tests {
     fn test_proof_for_large_tree() {
         let data: Vec<&str> = vec!["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
         let tree = MerkleTree::new(data);
-        let proof = tree.generate_merkle_proof(0);
+        let proof = tree.generate_merkle_proof(0).unwrap();
 
         let h = |s: &[u8]| Sha256::digest(s);
         let mut hasher = Sha256::new();
@@ -585,6 +592,141 @@ mod tests {
         ];
 
         assert_eq!(proof, expected_proof);
+    }
+
+    #[test]
+    fn test_proof_for_index_out_of_bounds() {
+        let tree = MerkleTree::new(vec!["A", "B", "C"]);
+        let result = tree.generate_merkle_proof(5);
+        
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_proof_for_middle_element_odd_tree() {
+        let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E"]);
+        let proof = tree.generate_merkle_proof(1).unwrap();
+
+        assert!(proof.len() > 0);
+    }
+
+    #[test]
+    fn test_tree_with_identical_leaves() {
+        let tree1 = MerkleTree::new(vec!["A", "A", "A", "A"]);
+        let tree2 = MerkleTree::new(vec!["A", "A", "A", "A"]);
+        
+        assert_eq!(tree1.get_root(), tree2.get_root());
+    }
+
+    #[test]
+    fn test_tree_with_different_data_types() {
+        let data1: Vec<&[u8]> = vec![b"hello", b"world"];
+        let tree1 = MerkleTree::new(data1);
+
+        let data2: Vec<String> = vec!["hello".to_string(), "world".to_string()];
+        let tree2 = MerkleTree::new(data2);
+
+        assert_eq!(tree1.get_root(), tree2.get_root());
+    }
+
+    #[test]
+    fn test_proof_for_last_element_even_tree() {
+        let tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+        let proof = tree.generate_merkle_proof(3).unwrap();
+
+        let hash_a = Sha256::digest(b"A");
+        let hash_b = Sha256::digest(b"B");
+        let hash_c = Sha256::digest(b"C");
+        let hash_d = Sha256::digest(b"D");
+
+        let mut hasher = Sha256::new();
+        hasher.update(&hash_a);
+        hasher.update(&hash_b);
+        let hash_ab = hasher.finalize_reset();
+
+        hasher.update(&hash_c);
+        hasher.update(&hash_d);
+        let hash_cd = hasher.finalize_reset();
+
+        hasher.update(&hash_ab);
+        hasher.update(&hash_cd);
+        let expected_root = hasher.finalize();
+
+        let expected_proof = vec![
+            MerkleProof::new(hash_c.into(), false),
+            MerkleProof::new(hash_ab.into(), false),
+            MerkleProof::new(expected_root.into(), false),
+        ];
+
+        assert_eq!(proof, expected_proof);
+    }
+
+    #[test]
+    fn test_proof_for_middle_indices() {
+        let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H"]);
+        
+        let proof_3 = tree.generate_merkle_proof(3);
+        let proof_4 = tree.generate_merkle_proof(4);
+        
+        assert!(proof_3.is_ok());
+        assert!(proof_4.is_ok());
+        assert_ne!(proof_3.unwrap(), proof_4.unwrap());
+    }
+
+    #[test]
+    fn test_seven_leaves_tree() {
+        let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G"]);
+        let root = tree.get_root();
+        
+        assert!(root.is_some());
+        
+        for i in 0..7 {
+            let proof = tree.generate_merkle_proof(i);
+            assert!(proof.is_ok(), "Proof for index {} should succeed", i);
+        }
+    }
+
+    #[test]
+    fn test_large_odd_tree() {
+        let data: Vec<String> = (0..15).map(|i| format!("data_{}", i)).collect();
+        let tree = MerkleTree::new(data);
+        
+        let root = tree.get_root();
+        assert!(root.is_some());
+        
+        let proof_first = tree.generate_merkle_proof(0);
+        let proof_last = tree.generate_merkle_proof(14);
+        
+        assert!(proof_first.is_ok());
+        assert!(proof_last.is_ok());
+        assert_ne!(proof_first.unwrap(), proof_last.unwrap());
+    }
+
+    #[test]
+    fn test_tree_with_binary_data() {
+        let data: Vec<Vec<u8>> = vec![
+            vec![0, 1, 2, 3],
+            vec![4, 5, 6, 7],
+            vec![8, 9, 10, 11],
+        ];
+        let tree = MerkleTree::new(data);
+        
+        assert!(tree.get_root().is_some());
+    }
+
+    #[test]
+    fn test_proof_verification_path_length() {
+        let tree_2 = MerkleTree::new(vec!["A", "B"]);
+        let tree_4 = MerkleTree::new(vec!["A", "B", "C", "D"]);
+        let tree_8 = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H"]);
+        
+        let proof_2 = tree_2.generate_merkle_proof(0).unwrap();
+        let proof_4 = tree_4.generate_merkle_proof(0).unwrap();
+        let proof_8 = tree_8.generate_merkle_proof(0).unwrap();
+        
+        // Proof length should increase with tree depth
+        assert!(proof_2.len() < proof_4.len());
+        assert!(proof_4.len() < proof_8.len());
     }
     
 }
