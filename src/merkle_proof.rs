@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub struct MerkleProof {
     pub hash: [u8; 32],

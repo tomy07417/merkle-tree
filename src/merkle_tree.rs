@@ -1,8 +1,8 @@
 use crate::merkle_errors::MerkleError;
 use std::error::Error;
 
-use sha2::{Digest, Sha256};
 use crate::merkle_proof::MerkleProof;
+use sha2::{Digest, Sha256};
 
 type Hash = [u8; 32];
 
@@ -22,7 +22,9 @@ impl MerkleTree {
             .collect();
 
         if leaves.is_empty() || leaves.len() == 1 {
-            return MerkleTree { layers: vec![leaves] };
+            return MerkleTree {
+                layers: vec![leaves],
+            };
         }
 
         let mut layers = Vec::new();
@@ -54,13 +56,13 @@ impl MerkleTree {
         if depth == 0 {
             return Ok(vec![]);
         }
-        
+
         let mut proof = Vec::new();
         let mut current_index = index;
 
         for level in 0..(depth - 1) {
             let layer = &self.layers[level];
-            
+
             if layer.len() % 2 == 1 && current_index == layer.len() - 1 {
                 // Odd index and no sibling (last element)
                 proof.push(MerkleProof::new(layer[current_index], false));
@@ -73,7 +75,7 @@ impl MerkleTree {
                 current_index = (current_index - 1) / 2;
             }
         }
-        
+
         proof.push(MerkleProof::new(self.get_root().unwrap(), false));
         Ok(proof)
     }
@@ -229,7 +231,7 @@ mod tests {
         let hash_b = Sha256::digest(b"B");
         let hash_c = Sha256::digest(b"C");
         let hash_d = Sha256::digest(b"D");
-        
+
         let mut hasher = Sha256::new();
         hasher.update(&hash_a);
         hasher.update(&hash_b);
@@ -260,9 +262,7 @@ mod tests {
 
         let expected_root = Sha256::digest(b"A");
 
-        let expected_proof = vec![
-            MerkleProof::new(expected_root.into(), false),
-        ];
+        let expected_proof = vec![MerkleProof::new(expected_root.into(), false)];
 
         assert_eq!(proof, expected_proof);
     }
@@ -516,7 +516,9 @@ mod tests {
 
     #[test]
     fn test_proof_for_large_tree() {
-        let data: Vec<&str> = vec!["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
+        let data: Vec<&str> = vec![
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
+        ];
         let tree = MerkleTree::new(data);
         let proof = tree.generate_merkle_proof(0).unwrap();
 
@@ -598,7 +600,7 @@ mod tests {
     fn test_proof_for_index_out_of_bounds() {
         let tree = MerkleTree::new(vec!["A", "B", "C"]);
         let result = tree.generate_merkle_proof(5);
-        
+
         assert!(result.is_err());
     }
 
@@ -614,7 +616,7 @@ mod tests {
     fn test_tree_with_identical_leaves() {
         let tree1 = MerkleTree::new(vec!["A", "A", "A", "A"]);
         let tree2 = MerkleTree::new(vec!["A", "A", "A", "A"]);
-        
+
         assert_eq!(tree1.get_root(), tree2.get_root());
     }
 
@@ -664,10 +666,10 @@ mod tests {
     #[test]
     fn test_proof_for_middle_indices() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H"]);
-        
+
         let proof_3 = tree.generate_merkle_proof(3);
         let proof_4 = tree.generate_merkle_proof(4);
-        
+
         assert!(proof_3.is_ok());
         assert!(proof_4.is_ok());
         assert_ne!(proof_3.unwrap(), proof_4.unwrap());
@@ -677,9 +679,9 @@ mod tests {
     fn test_seven_leaves_tree() {
         let tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G"]);
         let root = tree.get_root();
-        
+
         assert!(root.is_some());
-        
+
         for i in 0..7 {
             let proof = tree.generate_merkle_proof(i);
             assert!(proof.is_ok(), "Proof for index {} should succeed", i);
@@ -690,13 +692,13 @@ mod tests {
     fn test_large_odd_tree() {
         let data: Vec<String> = (0..15).map(|i| format!("data_{}", i)).collect();
         let tree = MerkleTree::new(data);
-        
+
         let root = tree.get_root();
         assert!(root.is_some());
-        
+
         let proof_first = tree.generate_merkle_proof(0);
         let proof_last = tree.generate_merkle_proof(14);
-        
+
         assert!(proof_first.is_ok());
         assert!(proof_last.is_ok());
         assert_ne!(proof_first.unwrap(), proof_last.unwrap());
@@ -704,13 +706,9 @@ mod tests {
 
     #[test]
     fn test_tree_with_binary_data() {
-        let data: Vec<Vec<u8>> = vec![
-            vec![0, 1, 2, 3],
-            vec![4, 5, 6, 7],
-            vec![8, 9, 10, 11],
-        ];
+        let data: Vec<Vec<u8>> = vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]];
         let tree = MerkleTree::new(data);
-        
+
         assert!(tree.get_root().is_some());
     }
 
@@ -719,14 +717,13 @@ mod tests {
         let tree_2 = MerkleTree::new(vec!["A", "B"]);
         let tree_4 = MerkleTree::new(vec!["A", "B", "C", "D"]);
         let tree_8 = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H"]);
-        
+
         let proof_2 = tree_2.generate_merkle_proof(0).unwrap();
         let proof_4 = tree_4.generate_merkle_proof(0).unwrap();
         let proof_8 = tree_8.generate_merkle_proof(0).unwrap();
-        
+
         // Proof length should increase with tree depth
         assert!(proof_2.len() < proof_4.len());
         assert!(proof_4.len() < proof_8.len());
     }
-    
 }
