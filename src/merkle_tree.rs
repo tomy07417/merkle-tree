@@ -1,23 +1,24 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
-type Hash = [u8; 32]; 
+type Hash = [u8; 32];
 
 pub struct MerkleTree {
-    layers: Vec<Vec<Hash>>
+    layers: Vec<Vec<Hash>>,
 }
 
 impl MerkleTree {
     pub fn new<T: AsRef<[u8]>>(data: Vec<T>) -> Self {
-        let leaves: Vec<Hash> = data.iter().map(|d| {
-            let mut hasher = Sha256::new();
-            hasher.update(d.as_ref());
-            hasher.finalize().into()
-        }).collect();
+        let leaves: Vec<Hash> = data
+            .iter()
+            .map(|d| {
+                let mut hasher = Sha256::new();
+                hasher.update(d.as_ref());
+                hasher.finalize().into()
+            })
+            .collect();
 
         if leaves.is_empty() {
-            return MerkleTree {
-                layers: Vec::new()
-            };
+            return MerkleTree { layers: Vec::new() };
         }
 
         let mut layers = Vec::new();
@@ -32,9 +33,7 @@ impl MerkleTree {
 
         layers.push(current_layer);
 
-        MerkleTree {
-            layers  
-        }
+        MerkleTree { layers }
     }
 
     pub fn get_root(&self) -> Option<Hash> {
@@ -42,19 +41,22 @@ impl MerkleTree {
     }
 
     pub fn build_layer(previous_layer: &Vec<Hash>) -> Vec<Hash> {
-        let layer: Vec<[u8; 32]> = previous_layer.chunks(2).map(|pair| {
-            let mut hasher = Sha256::new();
-            
-            if pair.len() == 1 {
-                hasher.update(&pair[0]);
-                hasher.update(&pair[0]);
-                hasher.finalize().into()
-            } else {
-                hasher.update(&pair[0]);
-                hasher.update(&pair[1]);
-                hasher.finalize().into()
-            }
-        }).collect::<Vec<Hash>>();
+        let layer: Vec<[u8; 32]> = previous_layer
+            .chunks(2)
+            .map(|pair| {
+                let mut hasher = Sha256::new();
+
+                if pair.len() == 1 {
+                    hasher.update(&pair[0]);
+                    hasher.update(&pair[0]);
+                    hasher.finalize().into()
+                } else {
+                    hasher.update(&pair[0]);
+                    hasher.update(&pair[1]);
+                    hasher.finalize().into()
+                }
+            })
+            .collect::<Vec<Hash>>();
 
         layer
     }

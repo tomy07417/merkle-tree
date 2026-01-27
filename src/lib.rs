@@ -1,2 +1,2 @@
-pub mod merkle_tree;
 mod merkle_proof;
+pub mod merkle_tree;
