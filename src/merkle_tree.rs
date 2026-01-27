@@ -17,8 +17,8 @@ impl MerkleTree {
             })
             .collect();
 
-        if leaves.is_empty() {
-            return MerkleTree { layers: Vec::new() };
+        if leaves.is_empty() || leaves.len() == 1 {
+            return MerkleTree { layers: vec![leaves] };
         }
 
         let mut layers = Vec::new();
