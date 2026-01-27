@@ -67,7 +67,7 @@ impl MerkleTree {
                 // Odd index and no sibling (last element)
                 proof.push(MerkleProof::new(layer[current_index], false));
                 current_index = self.layers[level + 1].len() - 1;
-            } else if current_index % 2 == 0 {
+            } else if current_index.is_multiple_of(2) {
                 proof.push(MerkleProof::new(layer[current_index + 1], true));
                 current_index /= 2;
             } else {
