@@ -40,19 +40,19 @@ impl MerkleTree {
         self.layers.last().and_then(|layer| layer.first().cloned())
     }
 
-    pub fn build_layer(previous_layer: &Vec<Hash>) -> Vec<Hash> {
+    pub fn build_layer(previous_layer: &[Hash]) -> Vec<Hash> {
         let layer: Vec<[u8; 32]> = previous_layer
             .chunks(2)
             .map(|pair| {
                 let mut hasher = Sha256::new();
 
                 if pair.len() == 1 {
-                    hasher.update(&pair[0]);
-                    hasher.update(&pair[0]);
+                    hasher.update(pair[0]);
+                    hasher.update(pair[0]);
                     hasher.finalize().into()
                 } else {
-                    hasher.update(&pair[0]);
-                    hasher.update(&pair[1]);
+                    hasher.update(pair[0]);
+                    hasher.update(pair[1]);
                     hasher.finalize().into()
                 }
             })
