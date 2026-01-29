@@ -8,23 +8,25 @@ A Rust library implementation of a Merkle Tree data structure.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Features](#features)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Project Setup](#project-setup)
 - [Usage](#usage)
 - [API Reference](#api-reference)
 - [Development](#development)
   - [Building](#building)
   - [Testing](#testing)
   - [Code Formatting](#code-formatting)
+- [How Merkle Trees Work](#how-merkle-trees-work)
+- [Resources](#resources)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
 
 A **Merkle Tree** (also known as a hash tree) is a tree data structure where every leaf node is labeled with the cryptographic hash of a data block, and every non-leaf node is labeled with the cryptographic hash of the labels of its child nodes.
-
-This crate provides a SHA-256-based Merkle tree with proof generation and verification.
 
 ## Getting Started
 
@@ -56,35 +58,15 @@ Before you begin, ensure you have the following installed:
    cd merkle-tree
    ```
 
-2. **Build the project**
+2. **Set up Git hooks** (for code quality)
+   ```bash
+   make set-up
+   ```
+
+3. **Build the project**
    ```bash
    make build
    ```
-
-## Usage
-
-```rust
-use merkle_tree::merkle_tree::MerkleTree;
-
-let mut tree = MerkleTree::new(vec!["A", "B", "C"]);
-let root = tree.get_root();
-
-// Append new leaves
-tree.push(vec!["D", "E"]);
-
-// Generate a proof and verify it
-let proof = tree.generate_merkle_proof(1).unwrap();
-let leaf_hash = sha2::Sha256::digest(b"B");
-assert!(proof.verify(leaf_hash.into()));
-```
-
-## API Reference
-
-Generate docs locally with:
-
-```bash
-cargo doc --open
-```
 
 ## Development
 
@@ -95,6 +77,7 @@ cargo doc --open
 | `make set-up` | Configure git hooks for the project |
 | `make build` | Compile the project |
 | `make test` | Run all tests |
+| `make run` | Run the main binary |
 | `make clean` | Remove build artifacts |
 | `make fmt` | Format code using rustfmt |
 | `make check` | Check code for errors without building |
@@ -120,12 +103,6 @@ cargo test -- --nocapture
 
 # Run a specific test
 cargo test test_name
-```
-
-### Documentation
-
-```bash
-make doc
 ```
 
 ### Code Formatting
