@@ -44,6 +44,20 @@ impl MerkleTree {
         MerkleTree { layers }
     }
 
+    pub fn push<T: AsRef<[u8]>>(&mut self, new_data: Vec<T>) {
+        let new_data_hashes: Vec<Hash> = new_data
+            .iter()
+            .map(|d| {
+                let mut hasher = Sha256::new();
+                hasher.update(d.as_ref());
+                hasher.finalize().into()
+            })
+            .collect();
+
+        self.layers[0].extend(new_data_hashes);
+        self.rebuild_tree();
+    }
+
     pub fn get_root(&self) -> Option<Hash> {
         self.layers.last().and_then(|layer| layer.first().cloned())
     }
@@ -79,6 +93,30 @@ impl MerkleTree {
 
         proof.push(MerkleProofStep::new(self.get_root().unwrap(), false));
         Ok(MerkleProof::new(proof))
+    }
+
+    fn rebuild_tree(&mut self) {
+        // Keep only the leaf layer (first layer)
+        let leaves = self.layers[0].clone();
+
+        // Clear all layers except leaves
+        self.layers.clear();
+        self.layers.push(leaves);
+
+        // Rebuild the tree from scratch
+        if self.layers[0].is_empty() || self.layers[0].len() == 1 {
+            return;
+        }
+
+        let mut current_layer = MerkleTree::build_layer(&self.layers[0]);
+
+        while current_layer.len() > 1 {
+            let new_layer = MerkleTree::build_layer(&current_layer);
+            self.layers.push(current_layer);
+            current_layer = new_layer;
+        }
+
+        self.layers.push(current_layer);
     }
 
     fn build_layer(previous_layer: &[Hash]) -> Vec<Hash> {
