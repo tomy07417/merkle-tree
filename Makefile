@@ -1,8 +1,5 @@
 .PHONY: build test run clean
 
-set-up:
-	git config core.hooksPath .githooks
-
 build:
 	cargo build
 
@@ -19,4 +16,10 @@ fmt:
 	cargo fmt
 
 check:
-	cargo check   
+	cargo check
+
+doc:
+	cargo doc --open
+
+clippy:
+	cargo clippy
