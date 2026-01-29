@@ -1,27 +1,38 @@
 use crate::merkle_proof_step::MerkleProofStep;
 
+/// A Merkle inclusion proof, represented as ordered proof steps.
+///
+/// The final step is expected to contain the Merkle root hash.
 #[derive(Debug)]
 pub struct MerkleProof {
     steps: Vec<MerkleProofStep>,
 }
 
 impl MerkleProof {
+    /// Creates a new proof from an ordered list of steps.
     pub fn new(steps: Vec<MerkleProofStep>) -> Self {
         MerkleProof { steps }
     }
 
+    /// Returns `true` if the proof has no steps.
     pub fn is_empty(&self) -> bool {
         self.steps.is_empty()
     }
 
+    /// Returns the number of steps in the proof.
     pub fn len(&self) -> usize {
         self.steps.len()
     }
 
+    /// Returns a slice of the proof steps in order.
     pub fn steps(&self) -> &[MerkleProofStep] {
         &self.steps
     }
 
+    /// Verifies the proof against the provided leaf hash.
+    ///
+    /// The proof is valid if recomputing the path hashes results in the root
+    /// hash stored in the final proof step.
     pub fn verify(&self, hash: [u8; 32]) -> bool {
         if self.steps.is_empty() {
             return false;

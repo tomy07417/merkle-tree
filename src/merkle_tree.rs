@@ -8,11 +8,19 @@ use sha2::{Digest, Sha256};
 
 type Hash = [u8; 32];
 
+/// A Merkle tree built with SHA-256 hashes.
+///
+/// The tree stores layers from leaves (layer 0) up to the root (last layer).
+/// Each leaf is the SHA-256 hash of the input data.
 pub struct MerkleTree {
     layers: Vec<Vec<Hash>>,
 }
 
 impl MerkleTree {
+    /// Builds a new Merkle tree from the provided data.
+    ///
+    /// Each element is hashed with SHA-256 to create the leaves. If the number
+    /// of leaves is odd, the last leaf is duplicated when computing parent nodes.
     pub fn new<T: AsRef<[u8]>>(data: Vec<T>) -> Self {
         let leaves: Vec<Hash> = data
             .iter()
@@ -44,6 +52,10 @@ impl MerkleTree {
         MerkleTree { layers }
     }
 
+    /// Adds new elements to the tree and rebuilds all layers.
+    ///
+    /// This performs a full rebuild for simplicity (no incremental updates).
+    /// If `new_data` is empty, the tree remains unchanged.
     pub fn push<T: AsRef<[u8]>>(&mut self, new_data: Vec<T>) {
         let new_data_hashes: Vec<Hash> = new_data
             .iter()
@@ -58,10 +70,17 @@ impl MerkleTree {
         self.rebuild_tree();
     }
 
+    /// Returns the Merkle root hash, or `None` if the tree is empty.
     pub fn get_root(&self) -> Option<Hash> {
         self.layers.last().and_then(|layer| layer.first().cloned())
     }
 
+    /// Generates a Merkle inclusion proof for the leaf at `index`.
+    ///
+    /// The proof contains sibling steps from the leaf up to the root, with the
+    /// final step holding the root hash itself.
+    ///
+    /// Returns an error if `index` is out of bounds.
     pub fn generate_merkle_proof(&self, index: usize) -> Result<MerkleProof, Box<dyn Error>> {
         let depth = self.layers.len();
 
@@ -95,6 +114,9 @@ impl MerkleTree {
         Ok(MerkleProof::new(proof))
     }
 
+    /// Rebuilds all layers based on the current leaves.
+    ///
+    /// This clears intermediate layers and recalculates them from scratch.
     fn rebuild_tree(&mut self) {
         // Keep only the leaf layer (first layer)
         let leaves = self.layers[0].clone();
@@ -119,6 +141,9 @@ impl MerkleTree {
         self.layers.push(current_layer);
     }
 
+    /// Builds the next layer from a previous layer of hashes.
+    ///
+    /// If the number of nodes is odd, the last hash is duplicated.
     fn build_layer(previous_layer: &[Hash]) -> Vec<Hash> {
         let layer: Vec<[u8; 32]> = previous_layer
             .chunks(2)
