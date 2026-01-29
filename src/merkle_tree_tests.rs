@@ -688,7 +688,9 @@ fn test_push_large_batch() {
     let mut tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
     tree.push(vec!["E", "F", "G", "H", "I", "J", "K", "L"]);
 
-    let expected_tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]);
+    let expected_tree = MerkleTree::new(vec![
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
+    ]);
     assert_eq!(tree.get_root(), expected_tree.get_root());
 }
 
@@ -708,7 +710,7 @@ fn test_proof_after_push() {
     // Verify proofs work correctly
     let leaf_hash_a = Sha256::digest(b"A");
     let leaf_hash_d = Sha256::digest(b"D");
-    
+
     assert!(proof_a.unwrap().verify(leaf_hash_a.into()));
     assert!(proof_d.unwrap().verify(leaf_hash_d.into()));
 }
@@ -728,7 +730,7 @@ fn test_push_maintains_tree_validity() {
 #[test]
 fn test_push_root_changes_correctly() {
     let mut tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
-    
+
     let root1 = tree.get_root().unwrap();
     tree.push(vec!["E"]);
     let root2 = tree.get_root().unwrap();
@@ -769,7 +771,7 @@ fn test_push_identical_elements() {
 fn test_push_empty_batch() {
     let mut tree = MerkleTree::new(vec!["A", "B", "C"]);
     let root_before = tree.get_root().unwrap();
-    
+
     tree.push::<&str>(vec![]);
     let root_after = tree.get_root().unwrap();
 

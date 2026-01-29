@@ -98,24 +98,24 @@ impl MerkleTree {
     fn rebuild_tree(&mut self) {
         // Keep only the leaf layer (first layer)
         let leaves = self.layers[0].clone();
-        
+
         // Clear all layers except leaves
         self.layers.clear();
         self.layers.push(leaves);
-        
+
         // Rebuild the tree from scratch
         if self.layers[0].is_empty() || self.layers[0].len() == 1 {
             return;
         }
-        
+
         let mut current_layer = MerkleTree::build_layer(&self.layers[0]);
-        
+
         while current_layer.len() > 1 {
             let new_layer = MerkleTree::build_layer(&current_layer);
             self.layers.push(current_layer);
             current_layer = new_layer;
         }
-        
+
         self.layers.push(current_layer);
     }
 
