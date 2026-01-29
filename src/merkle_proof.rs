@@ -32,7 +32,7 @@ impl MerkleProof {
         }
 
         let mut current_hash = hash;
-        
+
         for i in 0..(self.steps.len() - 1) {
             let step = &self.steps[i];
 
@@ -351,7 +351,10 @@ mod test {
         let leaf_hash = Sha256::digest(b"A");
 
         // Both proofs should verify the same way
-        assert_eq!(proof1.verify(leaf_hash.into()), proof2.verify(leaf_hash.into()));
+        assert_eq!(
+            proof1.verify(leaf_hash.into()),
+            proof2.verify(leaf_hash.into())
+        );
         assert!(proof1.verify(leaf_hash.into()));
     }
 }

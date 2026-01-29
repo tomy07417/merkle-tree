@@ -1,8 +1,8 @@
 use crate::merkle_errors::MerkleError;
 use std::error::Error;
 
-use crate::merkle_proof_step::MerkleProofStep;
 use crate::merkle_proof::MerkleProof;
+use crate::merkle_proof_step::MerkleProofStep;
 
 use sha2::{Digest, Sha256};
 
@@ -108,4 +108,3 @@ impl PartialEq for MerkleTree {
         self.get_root() == other.get_root()
     }
 }
-
