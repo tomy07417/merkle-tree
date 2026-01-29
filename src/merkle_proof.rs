@@ -10,6 +10,10 @@ impl MerkleProof {
         MerkleProof { steps }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.steps.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.steps.len()
     }
