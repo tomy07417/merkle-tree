@@ -619,3 +619,178 @@ fn test_proof_verification_path_length() {
     assert!(proof_2.len() < proof_4.len());
     assert!(proof_4.len() < proof_8.len());
 }
+
+#[test]
+fn test_push_single_element_to_tree() {
+    let mut tree = MerkleTree::new(vec!["A", "B"]);
+    let root_before = tree.get_root().unwrap();
+
+    tree.push(vec!["C"]);
+    let root_after = tree.get_root().unwrap();
+
+    // Root should change after insertion
+    assert_ne!(root_before, root_after);
+
+    // Tree should have 3 leaves now
+    let expected_tree = MerkleTree::new(vec!["A", "B", "C"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_multiple_elements() {
+    let mut tree = MerkleTree::new(vec!["A", "B"]);
+    tree.push(vec!["C", "D"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_to_empty_tree() {
+    let mut tree = MerkleTree::new::<&str>(vec![]);
+    tree.push(vec!["A", "B"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_to_single_leaf_tree() {
+    let mut tree = MerkleTree::new(vec!["A"]);
+    tree.push(vec!["B"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_to_odd_number_tree() {
+    let mut tree = MerkleTree::new(vec!["A", "B", "C"]);
+    tree.push(vec!["D"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_multiple_times() {
+    let mut tree = MerkleTree::new(vec!["A"]);
+    tree.push(vec!["B"]);
+    tree.push(vec!["C"]);
+    tree.push(vec!["D"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_large_batch() {
+    let mut tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+    tree.push(vec!["E", "F", "G", "H", "I", "J", "K", "L"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_proof_after_push() {
+    let mut tree = MerkleTree::new(vec!["A", "B"]);
+    tree.push(vec!["C", "D"]);
+
+    // Generate proof for original element
+    let proof_a = tree.generate_merkle_proof(0);
+    assert!(proof_a.is_ok());
+
+    // Generate proof for newly added element
+    let proof_d = tree.generate_merkle_proof(3);
+    assert!(proof_d.is_ok());
+
+    // Verify proofs work correctly
+    let leaf_hash_a = Sha256::digest(b"A");
+    let leaf_hash_d = Sha256::digest(b"D");
+    
+    assert!(proof_a.unwrap().verify(leaf_hash_a.into()));
+    assert!(proof_d.unwrap().verify(leaf_hash_d.into()));
+}
+
+#[test]
+fn test_push_maintains_tree_validity() {
+    let mut tree = MerkleTree::new(vec!["A", "B", "C"]);
+    tree.push(vec!["D", "E"]);
+
+    // All indices should generate valid proofs
+    for i in 0..5 {
+        let proof = tree.generate_merkle_proof(i);
+        assert!(proof.is_ok(), "Proof generation failed for index {}", i);
+    }
+}
+
+#[test]
+fn test_push_root_changes_correctly() {
+    let mut tree = MerkleTree::new(vec!["A", "B", "C", "D"]);
+    
+    let root1 = tree.get_root().unwrap();
+    tree.push(vec!["E"]);
+    let root2 = tree.get_root().unwrap();
+    tree.push(vec!["F"]);
+    let root3 = tree.get_root().unwrap();
+
+    // Each push should produce a different root
+    assert_ne!(root1, root2);
+    assert_ne!(root2, root3);
+    assert_ne!(root1, root3);
+}
+
+#[test]
+fn test_push_with_binary_data() {
+    let mut tree = MerkleTree::new(vec![vec![0u8, 1, 2], vec![3, 4, 5]]);
+    tree.push(vec![vec![6, 7, 8], vec![9, 10, 11]]);
+
+    let expected_tree = MerkleTree::new(vec![
+        vec![0u8, 1, 2],
+        vec![3, 4, 5],
+        vec![6, 7, 8],
+        vec![9, 10, 11],
+    ]);
+
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_identical_elements() {
+    let mut tree = MerkleTree::new(vec!["A", "A"]);
+    tree.push(vec!["A", "A"]);
+
+    let expected_tree = MerkleTree::new(vec!["A", "A", "A", "A"]);
+    assert_eq!(tree.get_root(), expected_tree.get_root());
+}
+
+#[test]
+fn test_push_empty_batch() {
+    let mut tree = MerkleTree::new(vec!["A", "B", "C"]);
+    let root_before = tree.get_root().unwrap();
+    
+    tree.push::<&str>(vec![]);
+    let root_after = tree.get_root().unwrap();
+
+    // Root should remain the same when pushing empty batch
+    assert_eq!(root_before, root_after);
+}
+
+#[test]
+fn test_push_builds_balanced_tree() {
+    let mut tree = MerkleTree::new(vec!["A", "B"]);
+    tree.push(vec!["C", "D", "E", "F"]);
+
+    // Verify that proofs for all indices work
+    let data = vec!["A", "B", "C", "D", "E", "F"];
+    for (i, item) in data.iter().enumerate() {
+        let proof = tree.generate_merkle_proof(i).unwrap();
+        let leaf_hash = Sha256::digest(item.as_bytes());
+        assert!(
+            proof.verify(leaf_hash.into()),
+            "Proof verification failed for index {} after push",
+            i
+        );
+    }
+}
